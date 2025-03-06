@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes App</title>
+  <style>
+    /* General Styles */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      color: #34495e;
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+
+    /* Form Styles */
+    input,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .add-button {
+      background-color: #3498db;
+      color: white;
+    }
+
+    .edit-button {
+      background-color: #f1c40f;
+      color: white;
+    }
+
+    .delete-button {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    /* Notes List Styles */
+    #notesList {
+      margin-top: 20px;
+    }
+
+    .note {
+      background-color: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 15px;
+    }
+
+    .note p {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .note strong {
+      color: #2c3e50;
+      font-size: 1.2rem;
+    }
+
+    .note-buttons {
+      margin-top: 10px;
+    }
+
+    .note-buttons button {
+      margin-right: 10px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      .container {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Notes App</h1>
+
+    <!-- Add Note Form -->
+    <h2>Add a New Note</h2>
+    <input type="text" id="noteTitle" placeholder="Enter note title here..." />
+    <textarea id="noteContent" placeholder="Enter your note here..."></textarea>
+    <button class="add-button" onclick="addNote()">Add Note</button>
+
+    <!-- Notes List -->
+    <h2>Your Notes</h2>
+    <div id="notesList"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:5000/api";
+
+    // Fetch all notes
+    async function fetchNotes() {
+      const response = await fetch(`${API_URL}/notes`);
+      const notes = await response.json();
+      const notesList = document.getElementById("notesList");
+      notesList.innerHTML = "";
+
+      notes.forEach((note) => {
+        const noteDiv = document.createElement("div");
+        noteDiv.className = "note";
+        noteDiv.innerHTML = `
+          <p><strong>${note.title}</strong></p>
+          <p>${note.content}</p>
+          <div class="note-buttons">
+            <button class="edit-button" onclick="editNote(${note.id})">Edit</button>
+            <button class="delete-button" onclick="deleteNote(${note.id})">Delete</button>
+          </div>
+        `;
+        notesList.appendChild(noteDiv);
+      });
+    }
+
+    // Add a new note
+    async function addNote() {
+      const title = document.getElementById("noteTitle").value;
+      const content = document.getElementById("noteContent").value;
+      if (!title || !content) {
+        alert("Please enter both a title and a note.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/add-notes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title, content }),
+      });
+
+      if (response.ok) {
+        document.getElementById("noteTitle").value = "";
+        document.getElementById("noteContent").value = "";
+        fetchNotes();
+      }
+    }
+
+    // Edit a note
+    async function editNote(id) {
+      const newContent = prompt("Enter the new content for this note:");
+      if (newContent) {
+        await fetch(`${API_URL}/edit-notes/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content: newContent }),
+        });
+        fetchNotes();
+      }
+    }
+
+    // Delete a note
+    async function deleteNote(id) {
+      await fetch(`${API_URL}/delete-notes/${id}`, {
+        method: "DELETE",
+      });
+      fetchNotes();
+    }
+
+    // Load notes when the page loads
+    fetchNotes();
+  </script>
+</body>
+
+</html>

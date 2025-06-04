@@ -1,7 +1,10 @@
 import express from "express";
 import cors from "cors";
 import UserRoute from "./routes/UserRoute.js";
+import AuthRoute from "./routes/AuthRoute.js";
 import db from "./config/Database.js";
+import AuthUser from "./models/AuthUserModel.js";
+import User from "./models/UserModel.js";
 
 const app = express();
 
@@ -23,8 +26,12 @@ try {
   console.error("Database connection error:", error);
 }
 
+// Sync all models at once
+await db.sync();
+
 // Routes
 app.use("/api", UserRoute); // Prefix all routes with /api
+app.use("/api/auth", AuthRoute); // Prefix auth routes with /api/auth
 
 // 404 Handler
 app.use((req, res, next) => {

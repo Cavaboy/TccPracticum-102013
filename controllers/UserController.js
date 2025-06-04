@@ -3,10 +3,12 @@ import User from "../models/UserModel.js";
 // GET
 async function getNotes(req, res) {
   try {
-    const response = await User.findAll();
+    // Only fetch notes for the logged-in user
+    const response = await User.findAll({ where: { userId: req.user.id } });
     res.status(200).json(response);
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
@@ -14,10 +16,13 @@ async function getNotes(req, res) {
 async function createNotes(req, res) {
   try {
     const inputResult = req.body;
+    // Bind note to the logged-in user
+    inputResult.userId = req.user.id;
     await User.create(inputResult);
-    res.status(201).json({ msg: "User Created" });
+    res.status(201).json({ msg: "Note Created" });
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
@@ -42,4 +47,17 @@ async function deleteNotes(req, res) {
   }
 }
 
-export { getNotes, createNotes, updateNotes, deleteNotes };
+async function getNoteById(req, res) {
+  try {
+    const note = await User.findByPk(req.params.id);
+    if (!note) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+    res.status(200).json(note);
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+export { getNotes, createNotes, updateNotes, deleteNotes, getNoteById };

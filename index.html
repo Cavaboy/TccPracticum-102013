@@ -111,6 +111,49 @@
       margin-right: 10px;
     }
 
+    /* Auth Container Styles */
+    .auth-container {
+      margin-bottom: 30px;
+      background: #fffbe7;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .auth-container h2 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+
+    .auth-container span {
+      display: block;
+      margin: 10px 0;
+      text-align: center;
+      color: #888;
+    }
+
+    .auth-container button#logoutBtn {
+      background-color: #e67e22;
+      color: white;
+      margin-top: 10px;
+    }
+
+    .logout-btn {
+      background-color: #e67e22;
+      color: white;
+      margin-bottom: 20px;
+      float: right;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #mainApp {
+      display: none;
+    }
+
     /* Responsive Design */
     @media (max-width: 600px) {
       h1 {
@@ -132,23 +175,131 @@
   <div class="container">
     <h1>Notes App</h1>
 
-    <!-- Add Note Form -->
-    <h2>Add a New Note</h2>
-    <input type="text" id="noteTitle" placeholder="Enter note title here..." />
-    <textarea id="noteContent" placeholder="Enter your note here..."></textarea>
-    <button class="add-button" onclick="addNote()">Add Note</button>
+    <!-- Authentication Container -->
+    <div class="auth-container" id="authContainer">
+      <h2>Login</h2>
+      <input type="text" id="loginUsername" placeholder="Username" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <span>or</span>
+      <h2>Register</h2>
+      <input type="text" id="registerUsername" placeholder="Username" />
+      <input type="password" id="registerPassword" placeholder="Password" />
+      <button onclick="register()">Register</button>
+      <div id="authMessage"></div>
+    </div>
 
-    <!-- Notes List -->
-    <h2>Your Notes</h2>
-    <div id="notesList"></div>
+    <div id="mainApp">
+      <button onclick="logout()" id="logoutBtn" class="logout-btn">Logout</button>
+      <div id="welcomeMsg"></div>
+      <!-- Add Note Form -->
+      <h2>Add a New Note</h2>
+      <input type="text" id="noteTitle" placeholder="Enter note title here..." />
+      <textarea id="noteContent" placeholder="Enter your note here..."></textarea>
+      <button class="add-button" onclick="addNote()">Add Note</button>
+      <!-- Notes List -->
+      <h2>Your Notes</h2>
+      <div id="notesList"></div>
+    </div>
   </div>
 
   <script>
+    // Change this to your backend's public IP or domain when deploying
     const API_URL = "http://localhost:5000/api";
+
+    // Auth helpers
+    function setAuth(token) {
+      localStorage.setItem("token", token);
+      updateUI();
+      document.getElementById("authMessage").textContent = "Logged in!";
+    }
+    function clearAuth() {
+      localStorage.removeItem("token");
+      updateUI();
+      document.getElementById("authMessage").textContent = "Logged out.";
+    }
+    function getAuthHeaders() {
+      const token = localStorage.getItem("token");
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    // Show/hide UI based on login state
+    function updateUI() {
+      const token = localStorage.getItem("token");
+      const authContainer = document.getElementById("authContainer");
+      const mainApp = document.getElementById("mainApp");
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (token) {
+        authContainer.style.display = "none";
+        mainApp.style.display = "block";
+        logoutBtn.classList.remove("hidden");
+        // Optionally decode username from JWT for welcome message
+        let username = "";
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          username = payload.username;
+        } catch { }
+        document.getElementById("welcomeMsg").textContent = username ? `Welcome, ${username}!` : "";
+      } else {
+        authContainer.style.display = "block";
+        mainApp.style.display = "none";
+        logoutBtn.classList.add("hidden");
+        document.getElementById("welcomeMsg").textContent = "";
+      }
+    }
+
+    // Login function
+    async function login() {
+      const username = document.getElementById("loginUsername").value;
+      const password = document.getElementById("loginPassword").value;
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAuth(data.token);
+        fetchNotes();
+      } else {
+        document.getElementById("authMessage").textContent = data.message || "Login failed";
+      }
+    }
+
+    // Register function
+    async function register() {
+      const username = document.getElementById("registerUsername").value;
+      const password = document.getElementById("registerPassword").value;
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAuth(data.token);
+        fetchNotes();
+      } else {
+        document.getElementById("authMessage").textContent = data.message || "Register failed";
+      }
+    }
+
+    // Logout function
+    function logout() {
+      clearAuth();
+      fetchNotes();
+    }
 
     // Fetch all notes
     async function fetchNotes() {
-      const response = await fetch(`${API_URL}/notes`);
+      const response = await fetch(`${API_URL}/notes`, {
+        headers: getAuthHeaders()
+      });
+      if (response.status === 401) {
+        document.getElementById("authMessage").textContent = "Please login to view notes.";
+        document.getElementById("notesList").innerHTML = "";
+        return;
+      }
       const notes = await response.json();
       const notesList = document.getElementById("notesList");
       notesList.innerHTML = "";
@@ -157,10 +308,10 @@
         const noteDiv = document.createElement("div");
         noteDiv.className = "note";
         noteDiv.innerHTML = `
-          <p><strong>${note.title}</strong></p>
+          <p><strong><a href="detail.html?id=${note.id}">${note.title}</a></strong></p>
           <p>${note.content}</p>
           <div class="note-buttons">
-            <button class="edit-button" onclick="editNote(${note.id})">Edit</button>
+            <a href="edit.html?id=${note.id}"><button class="edit-button">Edit</button></a>
             <button class="delete-button" onclick="deleteNote(${note.id})">Delete</button>
           </div>
         `;
@@ -181,6 +332,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders()
         },
         body: JSON.stringify({ title, content }),
       });
@@ -200,6 +352,7 @@
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders()
           },
           body: JSON.stringify({ content: newContent }),
         });
@@ -211,12 +364,16 @@
     async function deleteNote(id) {
       await fetch(`${API_URL}/delete-notes/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders()
       });
       fetchNotes();
     }
 
-    // Load notes when the page loads
-    fetchNotes();
+    // On load, update UI and fetch notes if logged in
+    updateUI();
+    if (localStorage.getItem("token")) {
+      fetchNotes();
+    }
   </script>
 </body>
 

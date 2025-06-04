@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Details</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .note-title {
+            font-size: 2rem;
+            color: #34495e;
+            margin-bottom: 10px;
+        }
+
+        .note-content {
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="note-title" id="noteTitle"></div>
+        <div class="note-content" id="noteContent"></div>
+        <a href="index.html">&larr; Back to Notes</a>
+    </div>
+    <script>
+        const API_URL = "http://localhost:5000/api";
+        const urlParams = new URLSearchParams(window.location.search);
+        const noteId = urlParams.get('id');
+        async function fetchNote() {
+            try {
+                const response = await fetch(`${API_URL}/notes/${noteId}`);
+                if (!response.ok) {
+                    document.getElementById('noteTitle').textContent = 'Title not found';
+                    document.getElementById('noteContent').textContent = 'Content not found';
+                    return;
+                }
+                const note = await response.json();
+                document.getElementById('noteTitle').textContent = note.title;
+                document.getElementById('noteContent').textContent = note.content;
+            } catch (err) {
+                document.getElementById('noteTitle').textContent = 'Error loading note';
+                document.getElementById('noteContent').textContent = 'Error loading note';
+            }
+        }
+        fetchNote();
+    </script>
+</body>
+
+</html>

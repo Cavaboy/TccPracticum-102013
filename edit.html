@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Note</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #3498db;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Edit Note</h1>
+        <form id="editForm">
+            <input type="text" id="noteTitle" placeholder="Title" required />
+            <textarea id="noteContent" placeholder="Content" required></textarea>
+            <button type="submit">Save Changes</button>
+        </form>
+    </div>
+    <script>
+        const API_URL = "http://localhost:5000/api";
+        const urlParams = new URLSearchParams(window.location.search);
+        const noteId = urlParams.get('id');
+        async function fetchNote() {
+            try {
+                const res = await fetch(`${API_URL}/notes/${noteId}`);
+                if (!res.ok) {
+                    document.getElementById('noteTitle').value = '';
+                    document.getElementById('noteContent').value = '';
+                    document.getElementById('noteTitle').placeholder = 'Title not found';
+                    document.getElementById('noteContent').placeholder = 'Content not found';
+                    return;
+                }
+                const note = await res.json();
+                if (note && (note.title || note.content)) {
+                    document.getElementById('noteTitle').value = note.title || '';
+                    document.getElementById('noteContent').value = note.content || '';
+                } else {
+                    document.getElementById('noteTitle').value = '';
+                    document.getElementById('noteContent').value = '';
+                    document.getElementById('noteTitle').placeholder = 'Title not found';
+                    document.getElementById('noteContent').placeholder = 'Content not found';
+                }
+            } catch (err) {
+                document.getElementById('noteTitle').value = '';
+                document.getElementById('noteContent').value = '';
+                document.getElementById('noteTitle').placeholder = 'Error loading note';
+                document.getElementById('noteContent').placeholder = 'Error loading note';
+            }
+        }
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('noteTitle').value;
+            const content = document.getElementById('noteContent').value;
+            await fetch(`${API_URL}/edit-notes/${noteId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+            window.location.href = 'index.html';
+        });
+        fetchNote();
+    </script>
+</body>
+
+</html>
